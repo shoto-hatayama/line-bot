@@ -36,18 +36,47 @@ class LineWebhookController extends Controller
             $receive = json_decode($raw, true);
 
             $event = $receive['events'][0];
-            $reply_token = $event['replyToken'];
+            $replyToken = $event['replyToken'];
 
             $headers = array('Content-Type: application/json',
                             'Authorization: Bearer '. $lineAccessToken);
 
-            $message = '';
+            if(isset($event['message']['latitude'])){
+
+                $columns = array(
+                                array(
+                                    'text'    => 'ジャンル名',
+                                    'actions' => array(
+                                        array('type' => 'postback', 'label' => 'このジャンルにする', 'data' => 'categorycode', 'text' => 'ジャンル名')
+                                )),
+                                array(
+                                    'text'    => 'ジャンル名',
+                                    'actions' => array(
+                                        array('type' => 'postback', 'label' => 'このジャンルにする', 'data' => 'categorycode', 'text' => 'ジャンル名')
+                                ))
+                            );
+
+                $template = array('type'    => 'carousel',
+                                  'columns' => $columns,
+                                );
+
+                $message = array('type'     => 'template',
+                                 'altText'  => '検索結果',
+                                 'template' => $template
+                                );
+
+            } elseif (isset($event['postback']['data'])){
+
+            }else{
+                return;
+            }
 
             //配列をJSONにエンコード
-            $body =json_encode(array('replyToken' => $reply_token,
+            $body =json_encode(array('replyToken' => $replyToken,
                                         'messages' => array($message)));
 
             \Log::info('送信処理開始');
+
             $options = array(CURLOPT_URL => 'https://api.line.me/v2/bot/message/reply',
                                 CURLOPT_CUSTOMREQUEST => 'POST',
                                 CURLOPT_RETURNTRANSFER => true,
