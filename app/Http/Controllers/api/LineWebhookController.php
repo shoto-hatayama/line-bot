@@ -43,18 +43,52 @@ class LineWebhookController extends Controller
 
             if(isset($event['message']['latitude'])){
 
-                $columns = array(
-                                array(
-                                    'text'    => 'ジャンル名',
-                                    'actions' => array(
-                                        array('type' => 'postback', 'label' => 'このジャンルにする', 'data' => 'categorycode', 'text' => 'ジャンル名')
-                                )),
-                                array(
-                                    'text'    => 'ジャンル名',
-                                    'actions' => array(
-                                        array('type' => 'postback', 'label' => 'このジャンルにする', 'data' => 'categorycode', 'text' => 'ジャンル名')
-                                ))
-                            );
+                //位置情報送信されたときジャンル名一覧をカルーセルで表示
+                \Log::info('ぐるなびAPIジャンル名取得処理開始');
+
+                $gnaviAccessKey = env('GNAVI_ACCESS_KEY', "");
+
+                $gnaviCurl = curl_init();
+
+                $gnaviCurlOption = array(
+                                        CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategoryLargeSearchAPI/v3/?keyid='.$gnaviAccessKey,
+                                        CURLOPT_RETURNTRANSFER => true,
+                                        );
+                curl_setopt_array($gnaviCurl, $gnaviCurlOption);
+                $result = curl_exec($gnaviCurl);
+                curl_close($gnaviCurl);
+                $gnaviGenreResult = json_decode($result, true);
+
+                //ぐるなびAPIで取得したジャンル名を10個に絞って配列作成
+                $gnaviGenres = [];
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][0]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][2]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][3]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][4]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][7]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][8]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][11]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][16]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][17]);
+                array_push($gnaviGenres, $gnaviGenreResult['category_l'][18]);
+
+                \Log::info('ぐるなびAPIジャンル名取得処理終了');
+
+                //カルーセル作成
+                $columns = [];
+                foreach($gnaviGenres as $gnaviGenre){
+                    array_push($columns,
+                        array(
+                            'text'    => $gnaviGenre['category_l_name'],
+                            'actions' => array(
+                                array('type' => 'postback',
+                                      'label' => 'このジャンルにする',
+                                      'data' => '&category_l='.$gnaviGenre['category_l_code'].'&latitude='.$event['message']['latitude'].'&longitude='.$event['message']['longitude'].'&range=5' ,
+                                      'text' => $gnaviGenre['category_l_name'])
+                            )
+                        )
+                    );
+                }
 
                 $template = array('type'    => 'carousel',
                                   'columns' => $columns,
