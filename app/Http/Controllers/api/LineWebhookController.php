@@ -44,47 +44,47 @@ class LineWebhookController extends Controller
             if(isset($event['message']['latitude'])){
 
                 //位置情報送信されたときジャンル名一覧をカルーセルで表示
-                \Log::info('ぐるなびAPIジャンル名取得処理開始');
+                \Log::info('ホットペッパーAPIジャンル名取得処理開始');
 
-                $gnaviAccessKey = env('GNAVI_ACCESS_KEY', "");
+                $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
 
-                $gnaviCurl = curl_init();
+                $hotpepperCurl = curl_init();
 
-                $gnaviCurlOption = array(
-                                        CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategoryLargeSearchAPI/v3/?keyid='.$gnaviAccessKey,
+                $hotpepperCurlOption = array(
+                                        CURLOPT_URL => 'https://webservice.recruit.co.jp/hotpepper/genre/v1/?key='.$hotpepperAccessKey.'&format=json',
                                         CURLOPT_RETURNTRANSFER => true,
                                         );
-                curl_setopt_array($gnaviCurl, $gnaviCurlOption);
-                $result = curl_exec($gnaviCurl);
-                curl_close($gnaviCurl);
-                $gnaviGenreResult = json_decode($result, true);
+                curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
+                $result = curl_exec($hotpepperCurl);
+                curl_close($hotpepperCurl);
+                $hotpepperGenreResult = json_decode($result, true);
 
-                //ぐるなびAPIで取得したジャンル名を10個に絞って配列作成
-                $gnaviGenres = [];
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][0]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][2]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][3]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][4]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][7]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][8]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][11]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][16]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][17]);
-                array_push($gnaviGenres, $gnaviGenreResult['category_l'][18]);
+                //ホットペッパーAPIで取得したジャンル名を10個に絞って配列作成
+                $hotpepperGenres = [];
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][0]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][1]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][3]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][4]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][7]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][8]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][12]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][13]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][14]);
+                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][15]);
 
-                \Log::info('ぐるなびAPIジャンル名取得処理終了');
+                \Log::info('ホットペッパーAPIジャンル名取得処理終了');
 
                 //カルーセル作成
                 $columns = [];
-                foreach($gnaviGenres as $gnaviGenre){
+                foreach($hotpepperGenres as $hotpepperGenre){
                     array_push($columns,
                         array(
-                            'text'    => $gnaviGenre['category_l_name'],
+                            'text'    => $hotpepperGenre['name'],
                             'actions' => array(
                                 array('type' => 'postback',
                                       'label' => 'このジャンルにする',
-                                      'data' => '&category_l='.$gnaviGenre['category_l_code'].'&latitude='.$event['message']['latitude'].'&longitude='.$event['message']['longitude'].'&range=5' ,
-                                      'text' => $gnaviGenre['category_l_name'])
+                                      'data' => '&genre='.$hotpepperGenre['code'].'&lat='.$event['message']['latitude'].'&lng='.$event['message']['longitude'].'&range=3&format=json' ,
+                                      'text' => $hotpepperGenre['name'])
                             )
                         )
                     );
