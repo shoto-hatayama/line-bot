@@ -57,7 +57,9 @@ class LineWebhookController extends Controller
                 curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
                 $result = curl_exec($hotpepperCurl);
                 curl_close($hotpepperCurl);
-                $hotpepperGenreResult = json_decode($result, true);
+                \Log::info('ホットペッパーAPIジャンル名取得処理終了');
+
+								$hotpepperGenreResult = json_decode($result, true);
 
                 //ホットペッパーAPIで取得したジャンル名を10個に絞って配列作成
                 $hotpepperGenres = [];
@@ -72,7 +74,6 @@ class LineWebhookController extends Controller
                 array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][14]);
                 array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][15]);
 
-                \Log::info('ホットペッパーAPIジャンル名取得処理終了');
 
                 //カルーセル作成
                 $columns = [];
@@ -90,21 +91,57 @@ class LineWebhookController extends Controller
                     );
                 }
 
-                $template = array('type'    => 'carousel',
-                                  'columns' => $columns,
-                                );
-
-                $message = array('type'     => 'template',
-                                 'altText'  => '検索結果',
-                                 'template' => $template
-                                );
 
             } elseif (isset($event['postback']['data'])){
 
+								//選択されたジャンルをもとに飲食店を検索する
+								\Log::info('ホットペッパーAPI飲食店取得処理開始');
+                $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
+
+                $hotpepperCurl = curl_init();
+
+                $hotpepperCurlOption = array(
+                    CURLOPT_URL => 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.$event['postback']['data'],
+                    CURLOPT_RETURNTRANSFER => true,
+                );
+                curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
+                $result = curl_exec($hotpepperCurl);
+                curl_close($hotpepperCurl);
+								\Log::info('ホットペッパーAPI飲食店取得処理終了');
+
+								$hotpepperShopResult = json_decode($result, true);
+                $hotpepperShops = $hotpepperShopResult['results']['shop'];
+
+                //カルーセル作成
+                $columns = [];
+                foreach($hotpepperShops as $hotpepperShop){
+                    array_push($columns,
+                        array(
+														'thumbnailImageUrl' => $hotpepperShop['photo']['pc']['l'],
+                            'text'    => $hotpepperShop['name'],
+                            'actions' => array(
+                                array('type' => 'uri',
+                                      'label' => '詳細ページへ',
+                                      'uri' => $hotpepperShop['urls']['pc']),
+                                array('type' => 'uri',
+																			'label' => 'クーポン',
+																			'uri' => $hotpepperShop['coupon_urls']['sp'])
+                            )
+                        )
+                    );
+                }
             }else{
                 return;
             }
 
+                $template = array('type'    => 'carousel',
+                                'columns' => $columns,
+                                );
+
+                $message = array('type'     => 'template',
+                                'altText'  => '検索結果',
+                                'template' => $template
+                                );
             //配列をJSONにエンコード
             $body =json_encode(array('replyToken' => $replyToken,
                                         'messages' => array($message)));
