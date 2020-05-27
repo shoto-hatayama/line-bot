@@ -10,6 +10,7 @@ use LINE\LINEBot\SignatureValidator;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
 use LINE\LINEBot\MessageBuilder\FlexMessageBuilder;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class LineWebhookController extends Controller
@@ -59,7 +60,7 @@ class LineWebhookController extends Controller
                 curl_close($hotpepperCurl);
                 \Log::info('ホットペッパーAPIジャンル名取得処理終了');
 
-								$hotpepperGenreResult = json_decode($result, true);
+                $hotpepperGenreResult = json_decode($result, true);
 
                 //ホットペッパーAPIで取得したジャンル名を10個に絞って配列作成
                 $hotpepperGenres = [];
@@ -94,8 +95,8 @@ class LineWebhookController extends Controller
 
             } elseif (isset($event['postback']['data'])){
 
-								//選択されたジャンルをもとに飲食店を検索する
-								\Log::info('ホットペッパーAPI飲食店取得処理開始');
+                //選択されたジャンルをもとに飲食店を検索する
+                \Log::info('ホットペッパーAPI飲食店取得処理開始');
                 $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
 
                 $hotpepperCurl = curl_init();
@@ -107,7 +108,7 @@ class LineWebhookController extends Controller
                 curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
                 $result = curl_exec($hotpepperCurl);
                 curl_close($hotpepperCurl);
-								\Log::info('ホットペッパーAPI飲食店取得処理終了');
+                \Log::info('ホットペッパーAPI飲食店取得処理終了');
 
 								$hotpepperShopResult = json_decode($result, true);
                 $hotpepperShops = $hotpepperShopResult['results']['shop'];
@@ -115,17 +116,20 @@ class LineWebhookController extends Controller
                 //カルーセル作成
                 $columns = [];
                 foreach($hotpepperShops as $hotpepperShop){
+
+										$shopImage = $hotpepperShop['photo']['pc']['l'] ? $hotpepperShop['photo']['pc']['l'] : Storage::disk('dropbox')->url('no_image.jpg');
+
                     array_push($columns,
                         array(
-														'thumbnailImageUrl' => $hotpepperShop['photo']['pc']['l'],
+                            'thumbnailImageUrl' => $shopImage,
                             'text'    => $hotpepperShop['name'],
                             'actions' => array(
                                 array('type' => 'uri',
                                       'label' => '詳細ページへ',
                                       'uri' => $hotpepperShop['urls']['pc']),
                                 array('type' => 'uri',
-																			'label' => 'クーポン',
-																			'uri' => $hotpepperShop['coupon_urls']['sp'])
+                                    	'label' => 'クーポン',
+                                    	'uri' => $hotpepperShop['coupon_urls']['sp'])
                             )
                         )
                     );
@@ -134,20 +138,19 @@ class LineWebhookController extends Controller
                 return;
             }
 
-                $template = array('type'    => 'carousel',
-                                'columns' => $columns,
-                                );
+						$template = array('type'    => 'carousel',
+														'columns' => $columns,
+														);
 
-                $message = array('type'     => 'template',
-                                'altText'  => '検索結果',
-                                'template' => $template
-                                );
+						$message = array('type'     => 'template',
+														'altText'  => '検索結果',
+														'template' => $template
+														);
             //配列をJSONにエンコード
-            $body =json_encode(array('replyToken' => $replyToken,
-                                        'messages' => array($message)));
+						$body =json_encode(array('replyToken' => $replyToken,
+																		 'messages' => array($message)));
 
             \Log::info('送信処理開始');
-
             $options = array(CURLOPT_URL => 'https://api.line.me/v2/bot/message/reply',
                                 CURLOPT_CUSTOMREQUEST => 'POST',
                                 CURLOPT_RETURNTRANSFER => true,
@@ -157,8 +160,8 @@ class LineWebhookController extends Controller
             curl_setopt_array($curl, $options);
             curl_exec($curl);
             curl_close($curl);
+						\Log::info('送信処理終了');
 
-            \Log::info('送信処理終了');
 
         } catch (Exception $e) {
             \Log::info('処理がエラーになりました。');
