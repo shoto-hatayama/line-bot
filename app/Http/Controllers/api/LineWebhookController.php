@@ -44,9 +44,8 @@ class LineWebhookController extends Controller
 
             if(isset($event['message']['latitude'])){
 
-                //位置情報送信されたときジャンル名一覧をカルーセルで表示
+                //位置情報が送信されたときジャンル名一覧をカルーセルで表示
                 \Log::info('ホットペッパーAPIジャンル名取得処理開始');
-
                 $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
 
                 $hotpepperCurl = curl_init();
@@ -75,7 +74,6 @@ class LineWebhookController extends Controller
                 array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][14]);
                 array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][15]);
 
-
                 //カルーセル作成
                 $columns = [];
                 foreach($hotpepperGenres as $hotpepperGenre){
@@ -85,13 +83,12 @@ class LineWebhookController extends Controller
                             'actions' => array(
                                 array('type' => 'postback',
                                       'label' => 'このジャンルにする',
-                                      'data' => '&genre='.$hotpepperGenre['code'].'&lat='.$event['message']['latitude'].'&lng='.$event['message']['longitude'].'&range=3&format=json' ,
+                                      'data' => '&genre='.$hotpepperGenre['code'].'&lat='.$event['message']['latitude'].'&lng='.$event['message']['longitude'].'&range=3&start=1&count=9&format=json' ,
                                       'text' => $hotpepperGenre['name'])
                             )
                         )
                     );
                 }
-
 
             } elseif (isset($event['postback']['data'])){
 
@@ -111,13 +108,13 @@ class LineWebhookController extends Controller
                 \Log::info('ホットペッパーAPI飲食店取得処理終了');
 
 								$hotpepperShopResult = json_decode($result, true);
-                $hotpepperShops = $hotpepperShopResult['results']['shop'];
+								$hotpepperShops = $hotpepperShopResult['results']['shop'];
 
                 //カルーセル作成
                 $columns = [];
                 foreach($hotpepperShops as $hotpepperShop){
 
-										$shopImage = $hotpepperShop['photo']['pc']['l'] ? $hotpepperShop['photo']['pc']['l'] : Storage::disk('dropbox')->url('no_image.jpg');
+                    $shopImage = $hotpepperShop['photo']['pc']['l'] ? $hotpepperShop['photo']['pc']['l'] : Storage::disk('dropbox')->url('no_image.jpg');
 
                     array_push($columns,
                         array(
@@ -132,23 +129,43 @@ class LineWebhookController extends Controller
                                     	'uri' => $hotpepperShop['coupon_urls']['sp'])
                             )
                         )
+										);
+									}
+
+								//検索結果の取得開始位置生成利用データ
+								preg_match('/start=[0-9]+/', $event['postback']['data'], $Matches);
+								$startNumber = preg_replace('/[^0-9]/', '', $Matches[0]);
+								$OUTPUT_DATA_NUMBER = config('const.HotPeppar.OUTPUT_DATA_NUMBER');
+
+                array_push($columns,
+                        array(
+                            'thumbnailImageUrl' => Storage::disk('dropbox')->url('no_image.jpg'),
+                            'text'    => 'sampletext',
+                            'actions' => array(
+                                    array('type' => 'postback',
+                                        	'label' => '前のページへ',
+                                      	  'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
+                                    array('type' => 'postback',
+                                          'label' => '次のページへ',
+                                          'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
+                                )
+                            )
                     );
-                }
             }else{
                 return;
             }
 
-						$template = array('type'    => 'carousel',
-														'columns' => $columns,
-														);
+            $template = array('type'    => 'carousel',
+                                            'columns' => $columns,
+                                            );
 
-						$message = array('type'     => 'template',
-														'altText'  => '検索結果',
-														'template' => $template
-														);
+            $message = array('type'     => 'template',
+                                            'altText'  => '検索結果',
+                                            'template' => $template
+                                            );
             //配列をJSONにエンコード
-						$body =json_encode(array('replyToken' => $replyToken,
-																		 'messages' => array($message)));
+            $body =json_encode(array('replyToken' => $replyToken,
+                                     'messages' => array($message)));
 
             \Log::info('送信処理開始');
             $options = array(CURLOPT_URL => 'https://api.line.me/v2/bot/message/reply',
@@ -160,7 +177,7 @@ class LineWebhookController extends Controller
             curl_setopt_array($curl, $options);
             curl_exec($curl);
             curl_close($curl);
-						\Log::info('送信処理終了');
+            \Log::info('送信処理終了');
 
 
         } catch (Exception $e) {
