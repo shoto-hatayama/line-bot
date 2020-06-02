@@ -98,8 +98,21 @@ class LineWebhookController extends Controller
 
                 $hotpepperCurl = curl_init();
 
+								//検索結果の取得開始位置算出
+								preg_match('/start=([0-9]+|-[0-9]+)/', $event['postback']['data'], $Matches);
+								$startNumber = preg_replace('/start=/', '', $Matches[0]);
+								$OUTPUT_DATA_NUMBER = config('const.HotPeppar.OUTPUT_DATA_NUMBER');
+
+								//検索結果の取得位置がマイナスの場合、検索結果の初めからデータを取得
+								if($startNumber < 0){
+										$startNumber = 1;
+										$curlUrl = preg_replace('/start=([0-9]+|-[0-9]+)/', 'start=1', 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.$event['postback']['data']);
+								} else {
+										$curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.$event['postback']['data'];
+								}
+
                 $hotpepperCurlOption = array(
-                    CURLOPT_URL => 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.$event['postback']['data'],
+                    CURLOPT_URL => $curlUrl,
                     CURLOPT_RETURNTRANSFER => true,
                 );
                 curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
@@ -129,16 +142,11 @@ class LineWebhookController extends Controller
                                     	'uri' => $hotpepperShop['coupon_urls']['sp'])
                             )
                         )
-					);
-				}
-
-                //検索結果の取得開始位置生成利用データ
-                preg_match('/start=[0-9]+/', $event['postback']['data'], $Matches);
-                $startNumber = preg_replace('/[^0-9]/', '', $Matches[0]);
-                $OUTPUT_DATA_NUMBER = config('const.HotPeppar.OUTPUT_DATA_NUMBER');
+										);
+								}
 
                 //検索結果の取得終了位置算出
-                $endNumber = $startNumber+$OUTPUT_DATA_NUMBER-1;
+								$endNumber = $startNumber+$OUTPUT_DATA_NUMBER-1;
                 if(!($endNumber >= $hotpepperShopResult['results']['results_available'])){
                     array_push($columns,
                             array(
@@ -146,11 +154,11 @@ class LineWebhookController extends Controller
                                 'text'    => 'sampletext',
                                 'actions' => array(
                                         array('type' => 'postback',
-                                                'label' => '前のページへ',
-                                                'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
+                                            	'label' => '前のページへ',
+                                              'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
                                         array('type' => 'postback',
                                               'label' => '次のページへ',
-                                              'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
+                                              'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
                             )
                         )
                     );
