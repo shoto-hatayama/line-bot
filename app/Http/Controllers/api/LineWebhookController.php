@@ -129,39 +129,44 @@ class LineWebhookController extends Controller
                                     	'uri' => $hotpepperShop['coupon_urls']['sp'])
                             )
                         )
-										);
-									}
+					);
+				}
 
-								//検索結果の取得開始位置生成利用データ
-								preg_match('/start=[0-9]+/', $event['postback']['data'], $Matches);
-								$startNumber = preg_replace('/[^0-9]/', '', $Matches[0]);
-								$OUTPUT_DATA_NUMBER = config('const.HotPeppar.OUTPUT_DATA_NUMBER');
+                //検索結果の取得開始位置生成利用データ
+                preg_match('/start=[0-9]+/', $event['postback']['data'], $Matches);
+                $startNumber = preg_replace('/[^0-9]/', '', $Matches[0]);
+                $OUTPUT_DATA_NUMBER = config('const.HotPeppar.OUTPUT_DATA_NUMBER');
 
-                array_push($columns,
-                        array(
-                            'thumbnailImageUrl' => Storage::disk('dropbox')->url('no_image.jpg'),
-                            'text'    => 'sampletext',
-                            'actions' => array(
-                                    array('type' => 'postback',
-                                        	'label' => '前のページへ',
-                                      	  'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
-                                    array('type' => 'postback',
-                                          'label' => '次のページへ',
-                                          'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
-                                )
+                //検索結果の取得終了位置算出
+                $endNumber = $startNumber+$OUTPUT_DATA_NUMBER-1;
+                if(!($endNumber >= $hotpepperShopResult['results']['results_available'])){
+                    array_push($columns,
+                            array(
+                                'thumbnailImageUrl' => Storage::disk('dropbox')->url('no_image.jpg'),
+                                'text'    => 'sampletext',
+                                'actions' => array(
+                                        array('type' => 'postback',
+                                                'label' => '前のページへ',
+                                                'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
+                                        array('type' => 'postback',
+                                              'label' => '次のページへ',
+                                              'data' => preg_replace('/start=[0-9]+/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
                             )
+                        )
                     );
+                }
+
             }else{
                 return;
             }
 
             $template = array('type'    => 'carousel',
-                                            'columns' => $columns,
+                                           'columns'  => $columns,
                                             );
 
             $message = array('type'     => 'template',
-                                            'altText'  => '検索結果',
-                                            'template' => $template
+                                           'altText'  => '検索結果',
+                                           'template' => $template
                                             );
             //配列をJSONにエンコード
             $body =json_encode(array('replyToken' => $replyToken,
