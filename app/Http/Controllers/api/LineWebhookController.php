@@ -90,6 +90,16 @@ class LineWebhookController extends Controller
                     );
                 }
 
+                $template = array('type'    => 'carousel',
+                                               'columns'  => $columns,
+                                            );
+
+                $message = array('type'     => 'template',
+                                            	 'altText'  => '検索結果',
+                                               'template' => $template
+
+                                            );
+
             } elseif (isset($event['postback']['data'])){
 
                 //選択されたジャンルをもとに飲食店を検索する
@@ -123,59 +133,68 @@ class LineWebhookController extends Controller
 								$hotpepperShopResult = json_decode($result, true);
 								$hotpepperShops = $hotpepperShopResult['results']['shop'];
 
-                //カルーセル作成
-                $columns = [];
-                foreach($hotpepperShops as $hotpepperShop){
+                if(!empty($hotpepperShops)){
+										//カルーセル作成
+										$columns = [];
+										foreach($hotpepperShops as $hotpepperShop){
 
-                    $shopImage = $hotpepperShop['photo']['pc']['l'] ? $hotpepperShop['photo']['pc']['l'] : Storage::disk('dropbox')->url('no_image.jpg');
+												$shopImage = $hotpepperShop['photo']['pc']['l'] ? $hotpepperShop['photo']['pc']['l'] : Storage::disk('dropbox')->url('no_image.jpg');
 
-                    array_push($columns,
-                        array(
-                            'thumbnailImageUrl' => $shopImage,
-                            'text'    => $hotpepperShop['name'],
-                            'actions' => array(
-                                array('type' => 'uri',
-                                      'label' => '詳細ページへ',
-                                      'uri' => $hotpepperShop['urls']['pc']),
-                                array('type' => 'uri',
-                                    	'label' => 'クーポン',
-                                    	'uri' => $hotpepperShop['coupon_urls']['sp'])
-                            )
-                        )
-										);
+												array_push($columns,
+														array(
+																'thumbnailImageUrl' => $shopImage,
+																'text'    => $hotpepperShop['name'],
+																'actions' => array(
+																		array('type' => 'uri',
+																					'label' => '詳細ページへ',
+																					'uri' => $hotpepperShop['urls']['pc']),
+																		array('type' => 'uri',
+																					'label' => 'クーポン',
+																					'uri' => $hotpepperShop['coupon_urls']['sp'])
+																				)
+																		)
+												);
+										}
+
+										//検索結果の取得終了位置算出
+										$endNumber = $startNumber+$OUTPUT_DATA_NUMBER-1;
+										if(!($endNumber >= $hotpepperShopResult['results']['results_available'])){
+												array_push($columns,
+																array(
+																		'thumbnailImageUrl' => Storage::disk('dropbox')->url('page_change.jpg'),
+																		'text'    => 'sampletext',
+																		'actions' => array(
+																						array('type' => 'postback',
+																									'label' => '前のページへ',
+																									'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
+																						array('type' => 'postback',
+																									'label' => '次のページへ',
+																									'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
+																)
+														)
+												);
+										}
+
+										$template = array('type'    => 'carousel',
+																									 'columns'  => $columns,
+																										);
+
+										$message = array('type'     => 'template',
+																									'altText'  => '検索結果',
+																									'template' => $template
+
+																										);
+
+								} else {
+
+										$message = array('type'		=>	'text',
+																		 'text' 	=>	'近くにお店がないから他を探してね！'
+																		);
 								}
-
-                //検索結果の取得終了位置算出
-								$endNumber = $startNumber+$OUTPUT_DATA_NUMBER-1;
-                if(!($endNumber >= $hotpepperShopResult['results']['results_available'])){
-                    array_push($columns,
-                            array(
-                                'thumbnailImageUrl' => Storage::disk('dropbox')->url('no_image.jpg'),
-                                'text'    => 'sampletext',
-                                'actions' => array(
-                                        array('type' => 'postback',
-                                            	'label' => '前のページへ',
-                                              'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
-                                        array('type' => 'postback',
-                                              'label' => '次のページへ',
-                                              'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
-                            )
-                        )
-                    );
-                }
 
             }else{
                 return;
             }
-
-            $template = array('type'    => 'carousel',
-                                           'columns'  => $columns,
-                                            );
-
-            $message = array('type'     => 'template',
-                                           'altText'  => '検索結果',
-                                           'template' => $template
-                                            );
             //配列をJSONにエンコード
             $body =json_encode(array('replyToken' => $replyToken,
                                      'messages' => array($message)));
