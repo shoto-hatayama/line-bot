@@ -83,7 +83,7 @@ class LineWebhookController extends Controller
                             'actions' => array(
                                 array('type' => 'postback',
                                       'label' => 'このジャンルにする',
-                                      'data' => '&genre='.$hotpepperGenre['code'].'&lat='.$event['message']['latitude'].'&lng='.$event['message']['longitude'].'&range=3&start=1&count=9&format=json' ,
+                                      'data' => '&genre='.$hotpepperGenre['code'].'&lat='.$event['message']['latitude'].'&lng='.$event['message']['longitude'].'&range=5&start=1&count=9&format=json' ,
                                       'text' => $hotpepperGenre['name'])
                             )
                         )
