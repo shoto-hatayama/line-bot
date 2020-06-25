@@ -46,6 +46,7 @@ class LineWebhookController extends Controller
 
                 //位置情報が送信されたときジャンル名一覧をカルーセルで表示
                 \Log::info('ホットペッパーAPIジャンル名取得処理開始');
+                //ホットペッパージャンル取得
                 $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
 
                 $hotpepperCurl = curl_init();
@@ -55,36 +56,65 @@ class LineWebhookController extends Controller
                                         CURLOPT_RETURNTRANSFER => true,
                                         );
                 curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
-                $result = curl_exec($hotpepperCurl);
+                $hotpepperResult = curl_exec($hotpepperCurl);
                 curl_close($hotpepperCurl);
-                \Log::info('ホットペッパーAPIジャンル名取得処理終了');
 
-                $hotpepperGenreResult = json_decode($result, true);
+                //ぐるなび大ジャンル取得
+                $gnaviAccessKey = env('GNAVI_ACCESS_KEY', "");
 
-                //ホットペッパーAPIで取得したジャンル名を10個に絞って配列作成
-                $hotpepperGenres = [];
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][0]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][1]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][3]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][4]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][7]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][8]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][12]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][13]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][14]);
-                array_push($hotpepperGenres, $hotpepperGenreResult['results']['genre'][15]);
+                $gnaviCurl = curl_init();
 
+                $gnaviCurlOption = array(
+                                        CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategoryLargeSearchAPI/v3//?keyid='.$gnaviAccessKey,
+                                        CURLOPT_RETURNTRANSFER => true,
+                                        );
+                curl_setopt_array($gnaviCurl, $gnaviCurlOption);
+                $gnaviCategoryLargeResult = curl_exec($gnaviCurl);
+                curl_close($gnaviCurl);
+
+                //ぐるなび小ジャンル取得
+                $gnaviCurl = curl_init();
+
+                $gnaviCurlOption = array(
+                                        CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategorySmallSearchAPI/v3/?keyid='.$gnaviAccessKey,
+                                        CURLOPT_RETURNTRANSFER => true,
+                                        );
+                curl_setopt_array($gnaviCurl, $gnaviCurlOption);
+                $gnaviCategorySmallResult = curl_exec($gnaviCurl);
+                curl_close($gnaviCurl);
+
+                \Log::info('ジャンル名取得処理終了');
+
+                $gnaviGenreLargeResult = json_decode($gnaviCategoryLargeResult, true);
+                $gnaviGenreSmallResult = json_decode($gnaviCategorySmallResult, true);
+                $hotpepperGenreResult = json_decode($hotpepperResult, true);
+
+								//ホットペッパーAPIとぐるなびAPIで取得したジャンル名を10個に絞って配列作成
+                $shopGenres = [];
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][0]['category_l_code'] => $hotpepperGenreResult['results']['genre'][0]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][16]['category_l_code'] => $hotpepperGenreResult['results']['genre'][1]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][6]['category_l_code'] => $hotpepperGenreResult['results']['genre'][3]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][11]['category_l_code'] => $hotpepperGenreResult['results']['genre'][4]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][4]['category_l_code'] => $hotpepperGenreResult['results']['genre'][7]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreSmallResult['category_s'][131]['category_s_code'] => $hotpepperGenreResult['results']['genre'][8]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][17]['category_l_code'] => $hotpepperGenreResult['results']['genre'][12]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][8]['category_l_code'] => $hotpepperGenreResult['results']['genre'][13]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][7]['category_l_code'] => $hotpepperGenreResult['results']['genre'][14]));
+                $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][18]['category_l_code'] => $hotpepperGenreResult['results']['genre'][15]));
+
+								$latitude = $event['message']['longitude'];
+								$longitude = $event['message']['latitude'];
                 //カルーセル作成
                 $columns = [];
-                foreach($hotpepperGenres as $hotpepperGenre){
+                foreach($shopGenres as $key => $shopGenre){
                     array_push($columns,
                         array(
-                            'text'    => $hotpepperGenre['name'],
+                            'text'    => $shopGenre['name'],
                             'actions' => array(
                                 array('type' => 'postback',
                                       'label' => 'このジャンルにする',
-                                      'data' => '&genre='.$hotpepperGenre['code'].'&lat='.$event['message']['latitude'].'&lng='.$event['message']['longitude'].'&range=5&start=1&count=9&format=json' ,
-                                      'text' => $hotpepperGenre['name'])
+																			'data' => '{"hotpepperGenreCode":"'.$shopGenre['code'].'","gnaviGenreCode":"'.$key.'","latitude":"'.$latitude.'","longitude":"'.$longitude.'","range": 5,"hotpepperListStart": 1,"gnaviListStart": 1,"hotpepperListCount": 5,"gnaviListCount": 4}',
+																			'text' => $shopGenre['name'])
                             )
                         )
                     );
@@ -95,13 +125,11 @@ class LineWebhookController extends Controller
                                             );
 
                 $message = array('type'     => 'template',
-                                            	 'altText'  => '検索結果',
+                                               'altText'  => '検索結果',
                                                'template' => $template
-
                                             );
 
             } elseif (isset($event['postback']['data'])){
-
                 //選択されたジャンルをもとに飲食店を検索する
                 \Log::info('ホットペッパーAPI飲食店取得処理開始');
                 $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
