@@ -45,7 +45,7 @@ class LineWebhookController extends Controller
             if(isset($event['message']['latitude'])){
 
                 //位置情報が送信されたときジャンル名一覧をカルーセルで表示
-                \Log::info('ホットペッパーAPIジャンル名取得処理開始');
+                \Log::info('ジャンル名取得処理開始');
                 //ホットペッパージャンル取得
                 $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
 
@@ -102,8 +102,8 @@ class LineWebhookController extends Controller
                 $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][7]['category_l_code'] => $hotpepperGenreResult['results']['genre'][14]));
                 $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][18]['category_l_code'] => $hotpepperGenreResult['results']['genre'][15]));
 
-								$latitude = $event['message']['longitude'];
-								$longitude = $event['message']['latitude'];
+								$latitude = $event['message']['latitude'];
+								$longitude = $event['message']['longitude'];
                 //カルーセル作成
                 $columns = [];
                 foreach($shopGenres as $key => $shopGenre){
@@ -130,63 +130,112 @@ class LineWebhookController extends Controller
                                             );
 
             } elseif (isset($event['postback']['data'])){
-                //選択されたジャンルをもとに飲食店を検索する
-                \Log::info('ホットペッパーAPI飲食店取得処理開始');
+								//選択されたジャンルをもとに飲食店を検索する
+								$genreData = json_decode($event['postback']['data'], true);
+
+								\Log::info('飲食店情報取得処理開始');
                 $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
+								$gnaviAccessKey = env('GNAVI_ACCESS_KEY', "");
 
-                $hotpepperCurl = curl_init();
-
-								//検索結果の取得開始位置算出
-								preg_match('/start=([0-9]+|-[0-9]+)/', $event['postback']['data'], $Matches);
-								$startNumber = preg_replace('/start=/', '', $Matches[0]);
-								$OUTPUT_DATA_NUMBER = config('const.HotPeppar.OUTPUT_DATA_NUMBER');
+								$hotpepperCurl = curl_init();
+								$gnaviCurl = curl_init();
 
 								//検索結果の取得位置がマイナスの場合、検索結果の初めからデータを取得
-								if($startNumber < 0){
-										$startNumber = 1;
-										$curlUrl = preg_replace('/start=([0-9]+|-[0-9]+)/', 'start=1', 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.$event['postback']['data']);
-								} else {
-										$curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.$event['postback']['data'];
+								if($genreData['hotpepperListStart'] < 0 || $genreData['gnaviListStart'] < 0){
+                    $genreData['hotpepperListStart'] = 1;
+                    $genreData['gnaviListStart'] = 1;
 								}
 
-                $hotpepperCurlOption = array(
-                    CURLOPT_URL => $curlUrl,
+								//ぐるなびのジャンルコードが大分類か小分類か判定してURLを作成
+								$genreCodeLast3Digits = substr($genreData['gnaviGenreCode'], -3);
+								if($genreCodeLast3Digits == '000'){
+										$gnaviCurlUrl = 'https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid='.$gnaviAccessKey.'&category_l='.$genreData['gnaviGenreCode'].'&latitude='.$genreData['latitude'].'&longitude='.$genreData['longitude'].'&range='.$genreData['range'].'&offset='.$genreData['gnaviListStart'].'&hit_per_page='.$genreData['gnaviListCount'];
+								} else {
+										$gnaviCurlUrl = 'https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid='.$gnaviAccessKey.'&category_s='.$genreData['gnaviGenreCode'].'&latitude='.$genreData['latitude'].'&longitude='.$genreData['longitude'].'&range='.$genreData['range'].'&offset='.$genreData['gnaviListStart'].'&hit_per_page='.$genreData['gnaviListCount'];
+								}
+
+								$hotpepperCurlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.'&genre='.$genreData['hotpepperGenreCode'].'&lat='.$genreData['latitude'].'&lng='.$genreData['longitude'].'&range='.$genreData['range'].'&start='.$genreData['hotpepperListStart'].'&count='.$genreData['hotpepperListCount'].'&format=json';
+
+								$hotpepperCurlOption = array(
+									CURLOPT_URL => $hotpepperCurlUrl,
+									CURLOPT_RETURNTRANSFER => true,
+								);
+                $gnaviCurlOption = array(
+                    CURLOPT_URL => $gnaviCurlUrl,
                     CURLOPT_RETURNTRANSFER => true,
-                );
-                curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
-                $result = curl_exec($hotpepperCurl);
-                curl_close($hotpepperCurl);
-                \Log::info('ホットペッパーAPI飲食店取得処理終了');
+								);
 
-								$hotpepperShopResult = json_decode($result, true);
-								$hotpepperShops = $hotpepperShopResult['results']['shop'];
+								curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
+								curl_setopt_array($gnaviCurl, $gnaviCurlOption);
 
-                if(!empty($hotpepperShops)){
+								$hotpepperResults = json_decode(curl_exec($hotpepperCurl), true);
+								$gnaviResults = json_decode(curl_exec($gnaviCurl), true);
+
+								curl_close($hotpepperCurl);
+								curl_close($gnaviCurl);
+
+                \Log::info('飲食店情報取得処理終了');
+
+								$hotpepperShops = $hotpepperResults['results']['shop'];
+								$gnaviShops = isset($gnaviResults['rest']) ? $gnaviResults['rest'] : [];
+
+                $shopDetails = [];
+                //ホットペッパーの店舗情報取得
+								foreach($hotpepperShops as $hotpepperShop){
+
+                    $shopImage = $hotpepperShop['photo']['pc']['l'] ? $hotpepperShop['photo']['pc']['l'] : Storage::disk('dropbox')->url('no_image.jpg');
+
+										array_push($shopDetails,
+												array(
+														'shopName' => $hotpepperShop['name'],
+														'infoUrl' => $hotpepperShop['urls']['pc'],
+														'couponUrl' => $hotpepperShop['coupon_urls']['sp'],
+														'imageUrl' => $shopImage,
+														)
+											);
+                }
+                //ぐるなびの店舗情報取得
+                foreach($gnaviShops as $gnaviShop){
+
+                    $shopImage = $gnaviShop['image_url']['shop_image1'] ? $gnaviShop['image_url']['shop_image1'] : Storage::disk('dropbox')->url('no_image.jpg');
+                    $couponUrl = $gnaviShop['coupon_url']['mobile'] ? $gnaviShop['coupon_url']['mobile'] : $gnaviShop['url_mobile'].'/coupon';
+
+                    array_push($shopDetails,
+                        array(
+                          'shopName' => $gnaviShop['name'],
+                          'infoUrl' => $gnaviShop['url_mobile'],
+                          'couponUrl' => $couponUrl,
+                          'imageUrl' => $shopImage,
+                        )
+                      );
+                }
+
+                if(!empty($shopDetails)){
 										//カルーセル作成
 										$columns = [];
-										foreach($hotpepperShops as $hotpepperShop){
-
-												$shopImage = $hotpepperShop['photo']['pc']['l'] ? $hotpepperShop['photo']['pc']['l'] : Storage::disk('dropbox')->url('no_image.jpg');
+										foreach($shopDetails as $shopDetail){
 
 												array_push($columns,
 														array(
-																'thumbnailImageUrl' => $shopImage,
-																'text'    => $hotpepperShop['name'],
+																'thumbnailImageUrl' => $shopDetail['imageUrl'],
+																'text'    => $shopDetail['shopName'],
 																'actions' => array(
 																		array('type' => 'uri',
 																					'label' => '詳細ページへ',
-																					'uri' => $hotpepperShop['urls']['pc']),
+																					'uri' => $shopDetail['infoUrl']),
 																		array('type' => 'uri',
 																					'label' => 'クーポン',
-																					'uri' => $hotpepperShop['coupon_urls']['sp'])
+																					'uri' => $shopDetail['couponUrl'])
 																				)
 																		)
 												);
 										}
 
 										//検索結果の取得終了位置算出
-										$endNumber = $startNumber+$OUTPUT_DATA_NUMBER-1;
-										if(!($endNumber >= $hotpepperShopResult['results']['results_available'])){
+                    $hotpepperListEnd = $genreData['hotpepperListStart']+$genreData['hotpepperListCount']-1;
+                    $gnaviListEnd = $genreData['gnaviListStart']+$genreData['gnaviListCount']-1;
+
+										if(!($hotpepperListEnd >= $hotpepperResults['results']['results_available']) && !($gnaviListEnd >= $gnaviResults['total_hit_count'])){
 												array_push($columns,
 																array(
 																		'thumbnailImageUrl' => Storage::disk('dropbox')->url('page_change.jpg'),
@@ -220,7 +269,7 @@ class LineWebhookController extends Controller
 																		);
 								}
 
-            }else{
+            } else {
                 return;
             }
             //配列をJSONにエンコード
