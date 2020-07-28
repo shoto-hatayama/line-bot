@@ -235,7 +235,18 @@ class LineWebhookController extends Controller
                     $hotpepperListEnd = $genreData['hotpepperListStart']+$genreData['hotpepperListCount']-1;
                     $gnaviListEnd = $genreData['gnaviListStart']+$genreData['gnaviListCount']-1;
 
-										if(!($hotpepperListEnd >= $hotpepperResults['results']['results_available']) && !($gnaviListEnd >= $gnaviResults['total_hit_count'])){
+                    $pageNext = function($genreData){
+                      $genreData['hotpepperListStart'] += $genreData['hotpepperListCount'];
+                      $genreData['gnaviListStart'] += $genreData['gnaviListCount'];
+                      return $genreData;
+                    };
+                    $pageBack = function($genreData){
+                      $genreData['hotpepperListStart'] -= $genreData['hotpepperListCount'];
+                      $genreData['gnaviListStart'] -= $genreData['gnaviListCount'];
+                      return $genreData;
+                    };
+
+										if(!($hotpepperListEnd >= $hotpepperResults['results']['results_available']) || !($gnaviListEnd >= $gnaviResults['total_hit_count'])){
 												array_push($columns,
 																array(
 																		'thumbnailImageUrl' => Storage::disk('dropbox')->url('page_change.jpg'),
@@ -243,13 +254,13 @@ class LineWebhookController extends Controller
 																		'actions' => array(
 																						array('type' => 'postback',
 																									'label' => '前のページへ',
-																									'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber-$OUTPUT_DATA_NUMBER), $event['postback']['data'])),
+																									'data' => json_encode($pageBack($genreData))),
 																						array('type' => 'postback',
 																									'label' => '次のページへ',
-																									'data' => preg_replace('/start=([0-9]+|-[0-9]+)/', 'start='.($startNumber+$OUTPUT_DATA_NUMBER), $event['postback']['data']))
-																)
-														)
-												);
+                                                  'data' => json_encode($pageNext($genreData)))
+                                                      )
+																    )
+												          );
 										}
 
 										$template = array('type'    => 'carousel',
@@ -265,7 +276,7 @@ class LineWebhookController extends Controller
 								} else {
 
 										$message = array('type'		=>	'text',
-																		 'text' 	=>	'近くにお店がないから他を探してね！'
+																		 'text' 	=>	'お店が見つかりませんでした。！'
 																		);
 								}
 
