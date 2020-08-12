@@ -176,6 +176,11 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
+        /*
+         * originalServiceProvider...
+         */
+        App\Providers\CallFoodApiServiceProvider::class,
+
     ],
 
     /*

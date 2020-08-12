@@ -45,49 +45,10 @@ class LineWebhookController extends Controller
             if(isset($event['message']['latitude'])){
 
                 //位置情報が送信されたときジャンル名一覧をカルーセルで表示
-                \Log::info('ジャンル名取得処理開始');
-                //ホットペッパージャンル取得
-                $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
-
-                $hotpepperCurl = curl_init();
-
-                $hotpepperCurlOption = array(
-                                        CURLOPT_URL => 'https://webservice.recruit.co.jp/hotpepper/genre/v1/?key='.$hotpepperAccessKey.'&format=json',
-                                        CURLOPT_RETURNTRANSFER => true,
-                                        );
-                curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
-                $hotpepperResult = curl_exec($hotpepperCurl);
-                curl_close($hotpepperCurl);
-
-                //ぐるなび大ジャンル取得
-                $gnaviAccessKey = env('GNAVI_ACCESS_KEY', "");
-
-                $gnaviCurl = curl_init();
-
-                $gnaviCurlOption = array(
-                                        CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategoryLargeSearchAPI/v3//?keyid='.$gnaviAccessKey,
-                                        CURLOPT_RETURNTRANSFER => true,
-                                        );
-                curl_setopt_array($gnaviCurl, $gnaviCurlOption);
-                $gnaviCategoryLargeResult = curl_exec($gnaviCurl);
-                curl_close($gnaviCurl);
-
-                //ぐるなび小ジャンル取得
-                $gnaviCurl = curl_init();
-
-                $gnaviCurlOption = array(
-                                        CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategorySmallSearchAPI/v3/?keyid='.$gnaviAccessKey,
-                                        CURLOPT_RETURNTRANSFER => true,
-                                        );
-                curl_setopt_array($gnaviCurl, $gnaviCurlOption);
-                $gnaviCategorySmallResult = curl_exec($gnaviCurl);
-                curl_close($gnaviCurl);
-
-                \Log::info('ジャンル名取得処理終了');
-
-                $gnaviGenreLargeResult = json_decode($gnaviCategoryLargeResult, true);
-                $gnaviGenreSmallResult = json_decode($gnaviCategorySmallResult, true);
-                $hotpepperGenreResult = json_decode($hotpepperResult, true);
+                $foodApi = app()->make('CallFoodApi');
+                $gnaviGenreLargeResult = $foodApi->getGnaviLargeGenre(env('GNAVI_ACCESS_KEY', ""));
+                $gnaviGenreSmallResult = $foodApi->getGnaviSmallGenre(env('GNAVI_ACCESS_KEY', ""));
+                $hotpepperGenreResult = $foodApi->getHotpepperGenre(env('HOTPEPPER_ACCESS_KEY', ""));
 
 								//ホットペッパーAPIとぐるなびAPIで取得したジャンル名を10個に絞って配列作成
                 $shopGenres = [];
