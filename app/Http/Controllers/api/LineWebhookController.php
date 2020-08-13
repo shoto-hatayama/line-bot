@@ -42,10 +42,10 @@ class LineWebhookController extends Controller
             $headers = array('Content-Type: application/json',
                             'Authorization: Bearer '. $lineAccessToken);
 
+            $foodApi = app()->make('CallFoodApi');
             if(isset($event['message']['latitude'])){
 
                 //位置情報が送信されたときジャンル名一覧をカルーセルで表示
-                $foodApi = app()->make('CallFoodApi');
                 $gnaviGenreLargeResult = $foodApi->getGnaviLargeGenre(env('GNAVI_ACCESS_KEY', ""));
                 $gnaviGenreSmallResult = $foodApi->getGnaviSmallGenre(env('GNAVI_ACCESS_KEY', ""));
                 $hotpepperGenreResult = $foodApi->getHotpepperGenre(env('HOTPEPPER_ACCESS_KEY', ""));
@@ -64,7 +64,8 @@ class LineWebhookController extends Controller
                 $shopGenres = array_merge($shopGenres, array($gnaviGenreLargeResult['category_l'][18]['category_l_code'] => $hotpepperGenreResult['results']['genre'][15]));
 
 								$latitude = $event['message']['latitude'];
-								$longitude = $event['message']['longitude'];
+                $longitude = $event['message']['longitude'];
+
                 //カルーセル作成
                 $columns = [];
                 foreach($shopGenres as $key => $shopGenre){
@@ -92,53 +93,21 @@ class LineWebhookController extends Controller
 
             } elseif (isset($event['postback']['data'])){
 								//選択されたジャンルをもとに飲食店を検索する
-								$genreData = json_decode($event['postback']['data'], true);
-
-								\Log::info('飲食店情報取得処理開始');
-                $hotpepperAccessKey = env('HOTPEPPER_ACCESS_KEY', "");
-								$gnaviAccessKey = env('GNAVI_ACCESS_KEY', "");
-
-								$hotpepperCurl = curl_init();
-								$gnaviCurl = curl_init();
+                $genreData = json_decode($event['postback']['data'], true);
 
 								//検索結果の取得位置がマイナスの場合、検索結果の初めからデータを取得
 								if($genreData['hotpepperListStart'] < 0 || $genreData['gnaviListStart'] < 0){
-                    $genreData['hotpepperListStart'] = 1;
-                    $genreData['gnaviListStart'] = 1;
+                  $genreData['hotpepperListStart'] = 1;
+                  $genreData['gnaviListStart'] = 1;
 								}
 
-								//ぐるなびのジャンルコードが大分類か小分類か判定してURLを作成
-								$genreCodeLast3Digits = substr($genreData['gnaviGenreCode'], -3);
-								if($genreCodeLast3Digits == '000'){
-										$gnaviCurlUrl = 'https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid='.$gnaviAccessKey.'&category_l='.$genreData['gnaviGenreCode'].'&latitude='.$genreData['latitude'].'&longitude='.$genreData['longitude'].'&range='.$genreData['range'].'&offset='.$genreData['gnaviListStart'].'&hit_per_page='.$genreData['gnaviListCount'];
-								} else {
-										$gnaviCurlUrl = 'https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid='.$gnaviAccessKey.'&category_s='.$genreData['gnaviGenreCode'].'&latitude='.$genreData['latitude'].'&longitude='.$genreData['longitude'].'&range='.$genreData['range'].'&offset='.$genreData['gnaviListStart'].'&hit_per_page='.$genreData['gnaviListCount'];
-								}
+                //それぞれのAPIから情報取得
+                $gnaviResults = $foodApi->getGnaviShopData(env('GNAVI_ACCESS_KEY', ""), $genreData);
+                $hotpepperResults = $foodApi->getHotpepperShopData(env('HOTPEPPER_ACCESS_KEY', ""), $genreData);
 
-								$hotpepperCurlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$hotpepperAccessKey.'&genre='.$genreData['hotpepperGenreCode'].'&lat='.$genreData['latitude'].'&lng='.$genreData['longitude'].'&range='.$genreData['range'].'&start='.$genreData['hotpepperListStart'].'&count='.$genreData['hotpepperListCount'].'&format=json';
-
-								$hotpepperCurlOption = array(
-									CURLOPT_URL => $hotpepperCurlUrl,
-									CURLOPT_RETURNTRANSFER => true,
-								);
-                $gnaviCurlOption = array(
-                    CURLOPT_URL => $gnaviCurlUrl,
-                    CURLOPT_RETURNTRANSFER => true,
-								);
-
-								curl_setopt_array($hotpepperCurl, $hotpepperCurlOption);
-								curl_setopt_array($gnaviCurl, $gnaviCurlOption);
-
-								$hotpepperResults = json_decode(curl_exec($hotpepperCurl), true);
-								$gnaviResults = json_decode(curl_exec($gnaviCurl), true);
-
-								curl_close($hotpepperCurl);
-								curl_close($gnaviCurl);
-
-                \Log::info('飲食店情報取得処理終了');
-
-								$hotpepperShops = $hotpepperResults['results']['shop'];
-								$gnaviShops = isset($gnaviResults['rest']) ? $gnaviResults['rest'] : [];
+                //取得した情報の中から店舗情報のみ取得
+                $gnaviShops = isset($gnaviResults['rest']) ? $gnaviResults['rest'] : [];
+                $hotpepperShops = $hotpepperResults['results']['shop'];
 
                 $shopDetails = [];
                 //ホットペッパーの店舗情報取得
@@ -237,7 +206,7 @@ class LineWebhookController extends Controller
 								} else {
 
 										$message = array('type'		=>	'text',
-																		 'text' 	=>	'お店が見つかりませんでした。！'
+																		 'text' 	=>	'お店が見つかりませんでした。'
 																		);
 								}
 
