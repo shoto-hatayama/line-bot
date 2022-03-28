@@ -230,13 +230,13 @@ class LineWebhookController extends Controller
 			$itemLimit = env("NEXT_ITEM_LIMIT");
 			$carouselLavel = env('BACK_CAROUSEL_LABEL', "");
 			$carouselText = env('BACK_CAROUSEL_TEXT', "");
-			$carouselData = env('CHANGE_PAGE_BACK', "");
+			$changePageAction = env('CHANGE_PAGE_BACK', "");
 		} elseif ($changePage === env("CHANGE_PAGE_BACK", "")) {
 			$arrayStartPosition = env("DEFAULT_START_POSITION", "");
 			$itemLimit = env("DEFAULT_ITEM_LIMIT", "");
 			$carouselLavel = env('NEXT_CAROUSEL_LABEL', "");
 			$carouselText = env('NEXT_CAROUSEL_TEXT', "");
-			$carouselData = env('CHANGE_PAGE_NEXT', "");
+			$changePageAction = env('CHANGE_PAGE_NEXT', "");
 		} else {
 			\Log::info("不正な値が入力されました。");
 			throw new Exception;
@@ -279,7 +279,7 @@ class LineWebhookController extends Controller
 					array(
 						'type' => 'postback',
 						'label' => $carouselLavel,
-						'data' =>	$carouselData
+						'data' =>	'{"latitude":"' . $latitude . '","longitude":"' . $longitude . '","changePage":"' . $changePageAction . '"}'
 					)
 				)
 			)
