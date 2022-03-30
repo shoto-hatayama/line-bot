@@ -8,8 +8,6 @@ use LINE\LINEBot;
 use LINE\LINEBot\Constant\HTTPHeader;
 use LINE\LINEBot\SignatureValidator;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
-use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
-use LINE\LINEBot\MessageBuilder\FlexMessageBuilder;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 
@@ -47,7 +45,6 @@ class LineWebhookController extends Controller
 			// postbackされた時にデータをjsonから配列に変換
 			$postBackData = isset($event['postback']['data']) ? json_decode($event['postback']['data'], true) : "";
 
-			$foodApi = app()->make('CallFoodApi');
 			if (isset($event['message']['latitude'])) {
 				// ジャンル名のカルーセルを表示
 
@@ -57,20 +54,16 @@ class LineWebhookController extends Controller
 
 				$message = $this->getGenreCarouselList($postBackData['latitude'], $postBackData['longitude'], $postBackData['changePage']);
 			} elseif (isset($postBackData['hotpepperGenreCode'])) {
+				// ジャンル名が選択された時の処理
 
-				//選択されたジャンルをもとに飲食店を検索する
-				$postBackData = json_decode($event['postback']['data'], true);
+				$foodApi = app()->make('CallFoodApi');
 
-				//検索結果の取得位置がマイナスの場合、検索結果の初めからデータを取得
-				if ($postBackData['hotpepperListStart'] < 0) {
-					$postBackData['hotpepperListStart'] = 1;
-				}
-
-				//それぞれのAPIから情報取得
+				//APIで情報取得
 				$hotpepperResults = $foodApi->getHotpepperShopData(env('HOTPEPPER_ACCESS_KEY', ""), $postBackData);
 
 				//取得した情報の中から店舗情報のみ取得
 				$hotpepperShops = $hotpepperResults['results']['shop'];
+
 
 				$shopDetails = [];
 				//ホットペッパーの店舗情報取得

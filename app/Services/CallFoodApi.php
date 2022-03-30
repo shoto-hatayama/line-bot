@@ -95,16 +95,21 @@ class CallFoodApi{
             \Log::info('ぐるなびAPIでの飲食店情報取得でエラーが発生しました。');
             \Log::info($e);
         }
-
     }
 
     //ホットペッパーAPIから飲食店情報を取得
-    public static function getHotpepperShopData($accessKey, $genreData){
+    public static function getHotpepperShopData($accessKey, $postBackData)
+    {
         try {
             \Log::info('ホットペッパーAPI飲食店情報取得処理開始');
+
+            //検索結果の取得位置がマイナスの場合、検索結果の初めからデータを取得
+            if ($postBackData['hotpepperListStart'] < 0) {
+                $postBackData['hotpepperListStart'] = 1;
+            }
             $curl = curl_init();
 
-            $curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key='.$accessKey.'&genre='.$genreData['hotpepperGenreCode'].'&lat='.$genreData['latitude'].'&lng='.$genreData['longitude'].'&range='.$genreData['range'].'&start='.$genreData['hotpepperListStart'].'&count='.$genreData['hotpepperListCount'].'&format=json';
+            $curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key=' . $accessKey . '&genre=' . $postBackData['hotpepperGenreCode'] . '&lat=' . $postBackData['latitude'] . '&lng=' . $postBackData['longitude'] . '&range=' . $postBackData['range'] . '&start=' . $postBackData['hotpepperListStart'] . '&count=' . $postBackData['hotpepperListCount'] . '&format=json';
             $curlOption = array(
                 CURLOPT_URL => $curlUrl,
                 CURLOPT_RETURNTRANSFER => true,
@@ -120,5 +125,4 @@ class CallFoodApi{
             \Log::info($e);
         }
     }
-
 }
