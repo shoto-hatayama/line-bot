@@ -44,12 +44,19 @@ class LineWebhookController extends Controller
 				'Authorization: Bearer ' . $lineAccessToken
 			);
 
+			// postbackされた時にデータをjsonから配列に変換
+			$postBackData = isset($event['postback']['data']) ? json_decode($event['postback']['data'], true) : "";
+
 			$foodApi = app()->make('CallFoodApi');
 			if (isset($event['message']['latitude'])) {
-
 				// ジャンル名のカルーセルを表示
+
 				$message = $this->getGenreCarouselList($event['message']['latitude'], $event['message']['longitude']);
-			} elseif (isset($event['postback']['data'])) {
+			} elseif (isset($postBackData['changePage'])) {
+				// ジャンル名カルーセルの切り替えを行う
+
+				$message = $this->getGenreCarouselList($postBackData['latitude'], $postBackData['longitude'], $postBackData['changePage']);
+			} elseif (isset($postBackData['hotpepperGenreCode'])) {
 
 				//選択されたジャンルをもとに飲食店を検索する
 				$genreData = json_decode($event['postback']['data'], true);
@@ -295,7 +302,7 @@ class LineWebhookController extends Controller
 			'altText'  => '検索結果',
 			'template' => $template
 		);
-		\Log::info($message);
+
 		return $message;
 	}
 }
