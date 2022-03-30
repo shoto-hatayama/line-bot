@@ -76,7 +76,6 @@ class LineWebhookController extends Controller
 						array(
 							'shopName' => $hotpepperShop['name'],
 							'infoUrl' => $hotpepperShop['urls']['pc'],
-							'couponUrl' => $hotpepperShop['coupon_urls']['sp'],
 							'imageUrl' => $shopImage,
 						)
 					);
@@ -100,9 +99,10 @@ class LineWebhookController extends Controller
 									),
 									array(
 										'type' => 'uri',
-										'label' => 'クーポン',
-										'uri' => $shopDetail['couponUrl']
-									)
+										'label' => 'googleMapを開く',
+										'uri' => 'https://www.google.com/maps/search/?api=1&query=' . str_replace(" ", "", $shopDetail['shopName'])
+
+									),
 								)
 							)
 						);
@@ -141,6 +141,7 @@ class LineWebhookController extends Controller
 							)
 						);
 					}
+
 
 					$template = array(
 						'type'    => 'carousel',
