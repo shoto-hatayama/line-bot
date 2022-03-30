@@ -59,20 +59,17 @@ class LineWebhookController extends Controller
 			} elseif (isset($postBackData['hotpepperGenreCode'])) {
 
 				//選択されたジャンルをもとに飲食店を検索する
-				$genreData = json_decode($event['postback']['data'], true);
+				$postBackData = json_decode($event['postback']['data'], true);
 
 				//検索結果の取得位置がマイナスの場合、検索結果の初めからデータを取得
-				if ($genreData['hotpepperListStart'] < 0 || $genreData['gnaviListStart'] < 0) {
-					$genreData['hotpepperListStart'] = 1;
-					$genreData['gnaviListStart'] = 1;
+				if ($postBackData['hotpepperListStart'] < 0) {
+					$postBackData['hotpepperListStart'] = 1;
 				}
 
 				//それぞれのAPIから情報取得
-				$gnaviResults = $foodApi->getGnaviShopData(env('GNAVI_ACCESS_KEY', ""), $genreData);
-				$hotpepperResults = $foodApi->getHotpepperShopData(env('HOTPEPPER_ACCESS_KEY', ""), $genreData);
+				$hotpepperResults = $foodApi->getHotpepperShopData(env('HOTPEPPER_ACCESS_KEY', ""), $postBackData);
 
 				//取得した情報の中から店舗情報のみ取得
-				$gnaviShops = isset($gnaviResults['rest']) ? $gnaviResults['rest'] : [];
 				$hotpepperShops = $hotpepperResults['results']['shop'];
 
 				$shopDetails = [];
@@ -87,22 +84,6 @@ class LineWebhookController extends Controller
 							'shopName' => $hotpepperShop['name'],
 							'infoUrl' => $hotpepperShop['urls']['pc'],
 							'couponUrl' => $hotpepperShop['coupon_urls']['sp'],
-							'imageUrl' => $shopImage,
-						)
-					);
-				}
-				//ぐるなびの店舗情報取得
-				foreach ($gnaviShops as $gnaviShop) {
-
-					$shopImage = $gnaviShop['image_url']['shop_image1'] ? $gnaviShop['image_url']['shop_image1'] : Storage::disk('dropbox')->url('no_image.jpg');
-					$couponUrl = $gnaviShop['coupon_url']['mobile'] ? $gnaviShop['coupon_url']['mobile'] : $gnaviShop['url_mobile'] . '/coupon';
-
-					array_push(
-						$shopDetails,
-						array(
-							'shopName' => $gnaviShop['name'],
-							'infoUrl' => $gnaviShop['url_mobile'],
-							'couponUrl' => $couponUrl,
 							'imageUrl' => $shopImage,
 						)
 					);
@@ -135,21 +116,18 @@ class LineWebhookController extends Controller
 					}
 
 					//検索結果の取得終了位置算出
-					$hotpepperListEnd = $genreData['hotpepperListStart'] + $genreData['hotpepperListCount'] - 1;
-					$gnaviListEnd = $genreData['gnaviListStart'] + $genreData['gnaviListCount'] - 1;
+					$hotpepperListEnd = $postBackData['hotpepperListStart'] + $postBackData['hotpepperListCount'] - 1;
 
-					$pageNext = function ($genreData) {
-						$genreData['hotpepperListStart'] += $genreData['hotpepperListCount'];
-						$genreData['gnaviListStart'] += $genreData['gnaviListCount'];
-						return $genreData;
+					$pageNext = function ($postBackData) {
+						$postBackData['hotpepperListStart'] += $postBackData['hotpepperListCount'];
+						return $postBackData;
 					};
-					$pageBack = function ($genreData) {
-						$genreData['hotpepperListStart'] -= $genreData['hotpepperListCount'];
-						$genreData['gnaviListStart'] -= $genreData['gnaviListCount'];
-						return $genreData;
+					$pageBack = function ($postBackData) {
+						$postBackData['hotpepperListStart'] -= $postBackData['hotpepperListCount'];
+						return $postBackData;
 					};
 
-					if (!($hotpepperListEnd >= $hotpepperResults['results']['results_available']) || !($gnaviListEnd >= $gnaviResults['total_hit_count'])) {
+					if (!($hotpepperListEnd >= $hotpepperResults['results']['results_available'])) {
 						array_push(
 							$columns,
 							array(
@@ -159,12 +137,12 @@ class LineWebhookController extends Controller
 									array(
 										'type' => 'postback',
 										'label' => '前のページへ',
-										'data' => json_encode($pageBack($genreData))
+										'data' => json_encode($pageBack($postBackData))
 									),
 									array(
 										'type' => 'postback',
 										'label' => '次のページへ',
-										'data' => json_encode($pageNext($genreData))
+										'data' => json_encode($pageNext($postBackData))
 									)
 								)
 							)
