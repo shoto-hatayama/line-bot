@@ -73,7 +73,7 @@ class LineWebhookController extends Controller
 					array_push(
 						$shopDetails,
 						array(
-							'shopName' => $hotpepperShop['name'],
+							'shopName' => mb_strimwidth($hotpepperShop['name'], 0, 60, '...', 'utf-8'),
 							'infoUrl' => $hotpepperShop['urls']['pc'],
 							'imageUrl' => $shopImage,
 						)
