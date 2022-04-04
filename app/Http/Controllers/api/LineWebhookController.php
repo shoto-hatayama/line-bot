@@ -53,7 +53,7 @@ class LineWebhookController extends Controller
 				// ジャンル名カルーセルの切り替えを行う
 
 				$message = $this->getGenreCarouselList($postBackData['latitude'], $postBackData['longitude'], $postBackData['changePage']);
-			} elseif (isset($postBackData['hotpepperGenreCode'])) {
+			} elseif (isset($postBackData['latitude'])) {
 				// ジャンル名が選択された時の処理
 
 				$foodApi = app()->make('CallFoodApi');
@@ -63,7 +63,6 @@ class LineWebhookController extends Controller
 
 				//取得した情報の中から店舗情報のみ取得
 				$hotpepperShops = $hotpepperResults['results']['shop'];
-
 
 				$shopDetails = [];
 				//ホットペッパーの店舗情報取得
@@ -233,7 +232,26 @@ class LineWebhookController extends Controller
 
 		//カルーセル作成
 		$columns = [];
+		if ($changePage === env("CHANGE_PAGE_BACK", "")) {
+			// ジャンルを指定しない検索
+			array_push(
+				$columns,
+				array(
+					'text' => 'ジャンル指定なし',
+					'actions' => array(
+						array(
+							'type' => 'postback',
+							'label' => '選択',
+							'data' => '{"latitude":"' . $latitude . '","longitude":"' . $longitude . '","range": 5,"hotpepperListStart": 1,"hotpepperListCount": 9}',
+							'text' => 'ジャンル指定なし'
+						)
+					)
+				)
+			);
+		}
+
 		foreach ($shopGenres as $key => $shopGenre) {
+			// ジャンルを指定した検索
 			array_push(
 				$columns,
 				array(
@@ -241,7 +259,7 @@ class LineWebhookController extends Controller
 					'actions' => array(
 						array(
 							'type' => 'postback',
-							'label' => 'このジャンルにする',
+							'label' => '選択',
 							'data' => '{"hotpepperGenreCode":"' . $shopGenre['code'] . '","latitude":"' . $latitude . '","longitude":"' . $longitude . '","range": 5,"hotpepperListStart": 1,"hotpepperListCount": 9}',
 							'text' => $shopGenre['name']
 						)

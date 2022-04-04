@@ -1,18 +1,21 @@
 <?php
+
 namespace App\Services;
 
-class CallFoodApi{
+class CallFoodApi
+{
 
     //HOTPEPPER分類名取得
-    public static function getHotpepperGenre($accessKey){
+    public static function getHotpepperGenre($accessKey)
+    {
         try {
             \Log::info('HOTPEPPER分類取得処理開始');
             $curl = curl_init();
 
             $curlOption = array(
-                CURLOPT_URL => 'https://webservice.recruit.co.jp/hotpepper/genre/v1/?key='.$accessKey.'&format=json',
+                CURLOPT_URL => 'https://webservice.recruit.co.jp/hotpepper/genre/v1/?key=' . $accessKey . '&format=json',
                 CURLOPT_RETURNTRANSFER => true,
-                );
+            );
             curl_setopt_array($curl, $curlOption);
             $result = curl_exec($curl);
 
@@ -107,9 +110,11 @@ class CallFoodApi{
             if ($postBackData['hotpepperListStart'] < 0) {
                 $postBackData['hotpepperListStart'] = 1;
             }
-            $curl = curl_init();
+            // ジャンルコードの指定がある場合クエリに追加
+            $genreCode = isset($postBackData['hotpepperGenreCode']) ? '&genre=' . $postBackData['hotpepperGenreCode'] : '';
 
-            $curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key=' . $accessKey . '&genre=' . $postBackData['hotpepperGenreCode'] . '&lat=' . $postBackData['latitude'] . '&lng=' . $postBackData['longitude'] . '&range=' . $postBackData['range'] . '&start=' . $postBackData['hotpepperListStart'] . '&count=' . $postBackData['hotpepperListCount'] . '&format=json';
+            $curl = curl_init();
+            $curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key=' . $accessKey . $genreCode . '&lat=' . $postBackData['latitude'] . '&lng=' . $postBackData['longitude'] . '&range=' . $postBackData['range'] . '&start=' . $postBackData['hotpepperListStart'] . '&count=' . $postBackData['hotpepperListCount'] . '&format=json';
             $curlOption = array(
                 CURLOPT_URL => $curlUrl,
                 CURLOPT_RETURNTRANSFER => true,
