@@ -81,66 +81,8 @@ class LineWebhookController extends Controller
 				}
 
 				if (!empty($shopDetails)) {
-					//カルーセル作成
-					$columns = [];
-					foreach ($shopDetails as $shopDetail) {
-
-						array_push(
-							$columns,
-							array(
-								'thumbnailImageUrl' => $shopDetail['imageUrl'],
-								'text'    => $shopDetail['shopName'],
-								'actions' => array(
-									array(
-										'type' => 'uri',
-										'label' => '詳細ページへ',
-										'uri' => $shopDetail['infoUrl']
-									),
-									array(
-										'type' => 'uri',
-										'label' => 'googleMapを開く',
-										'uri' => 'https://www.google.com/maps/search/?api=1&query=' . str_replace(" ", "", $shopDetail['shopName'])
-
-									),
-								)
-							)
-						);
-					}
-
-					//検索結果の取得終了位置算出
-					$hotpepperListEnd = $postBackData['hotpepperListStart'] + $postBackData['hotpepperListCount'] - 1;
-
-					$pageNext = function ($postBackData) {
-						$postBackData['hotpepperListStart'] += $postBackData['hotpepperListCount'];
-						return $postBackData;
-					};
-					$pageBack = function ($postBackData) {
-						$postBackData['hotpepperListStart'] -= $postBackData['hotpepperListCount'];
-						return $postBackData;
-					};
-
-					if (!($hotpepperListEnd >= $hotpepperResults['results']['results_available'])) {
-						array_push(
-							$columns,
-							array(
-								'thumbnailImageUrl' => Storage::disk('dropbox')->url('page_change.jpg'),
-								'text'    => 'sampletext',
-								'actions' => array(
-									array(
-										'type' => 'postback',
-										'label' => '前のページへ',
-										'data' => json_encode($pageBack($postBackData))
-									),
-									array(
-										'type' => 'postback',
-										'label' => '次のページへ',
-										'data' => json_encode($pageNext($postBackData))
-									)
-								)
-							)
-						);
-					}
-
+					// 飲食店情報一覧のカルーセル作成
+					$columns = $this->getShopDetailsCarousel($shopDetails, $postBackData, $hotpepperResults);
 
 					$template = array(
 						'type'    => 'carousel',
@@ -242,7 +184,7 @@ class LineWebhookController extends Controller
 						array(
 							'type' => 'postback',
 							'label' => '選択',
-							'data' => '{"latitude":"' . $latitude . '","longitude":"' . $longitude . '","range": 5,"hotpepperListStart": 1,"hotpepperListCount": 9}',
+							'data' => '{"latitude":"' . $latitude . '","longitude":"' . $longitude . '","range": 5,"hotpepperListStart": 1,"hotpepperListCount": 8}',
 							'text' => 'ジャンル指定なし'
 						)
 					)
@@ -260,7 +202,7 @@ class LineWebhookController extends Controller
 						array(
 							'type' => 'postback',
 							'label' => '選択',
-							'data' => '{"hotpepperGenreCode":"' . $shopGenre['code'] . '","latitude":"' . $latitude . '","longitude":"' . $longitude . '","range": 5,"hotpepperListStart": 1,"hotpepperListCount": 9}',
+							'data' => '{"hotpepperGenreCode":"' . $shopGenre['code'] . '","latitude":"' . $latitude . '","longitude":"' . $longitude . '","range": 5,"hotpepperListStart": 1,"hotpepperListCount": 8}',
 							'text' => $shopGenre['name']
 						)
 					)
@@ -294,5 +236,118 @@ class LineWebhookController extends Controller
 		);
 
 		return $message;
+	}
+
+	/**
+	 * 飲食店情報一覧のカルーセル作成
+	 *
+	 * @param array $shopDetails
+	 * @param array $postBackData
+	 * @param array $hotpepperResults
+	 * @return array $columns
+	 */
+	private function getShopDetailsCarousel($shopDetails, $postBackData, $hotpepperResults)
+	{
+
+		//カルーセル作成
+		$columns = [];
+		// 「前に戻る」カルーセル作成
+		if (!($hotpepperResults['results']['results_start'] == env("HOTPEPPER_RESULTS_START", ""))) {
+			$columns = $this->makeChangePageCarousel($columns, $postBackData, env("CHANGE_PAGE_BACK", ""));
+			\Log::info("dekitayo!");
+		}
+
+		foreach ($shopDetails as $shopDetail) {
+
+			array_push(
+				$columns,
+				array(
+					'thumbnailImageUrl' => $shopDetail['imageUrl'],
+					'text'    => $shopDetail['shopName'],
+					'actions' => array(
+						array(
+							'type' => 'uri',
+							'label' => '詳細ページへ',
+							'uri' => $shopDetail['infoUrl']
+						),
+						array(
+							'type' => 'uri',
+							'label' => 'googleMapを開く',
+							'uri' => 'https://www.google.com/maps/search/?api=1&query=' . str_replace(" ", "", $shopDetail['shopName'])
+
+						),
+					)
+				)
+			);
+		}
+		//検索結果の取得終了位置算出
+		$hotpepperListEnd = $postBackData['hotpepperListStart'] + $postBackData['hotpepperListCount'] - 1;
+		// 「次へ進む」カルーセル作成
+		if (!($hotpepperListEnd >= $hotpepperResults['results']['results_available'])) {
+			$columns = $this->makeChangePageCarousel($columns, $postBackData, env("CHANGE_PAGE_NEXT", ""));
+		}
+
+		return $columns;
+	}
+
+	/**
+	 * 「次へ進む」または「前に戻る」カルーセルを追加する
+	 *
+	 * @param array $columns
+	 * @param array] $postBackData
+	 * @param string $changeType
+	 * @return array $columns
+	 */
+	private function makeChangePageCarousel($columns, $postBackData, $changePage)
+	{
+
+		// 飲食店情報の開始位置を次のリスト取得用に設定
+		$pageNext = function ($postBackData) {
+			$postBackData['hotpepperListStart'] += $postBackData['hotpepperListCount'];
+			return $postBackData;
+		};
+		// 飲食店情報の開始位置を前のリスト取得用に設定
+		$pageBack = function ($postBackData) {
+			$postBackData['hotpepperListStart'] -= $postBackData['hotpepperListCount'];
+			return $postBackData;
+		};
+
+		if ($changePage === env("CHANGE_PAGE_NEXT", "")) {
+			// 「次のページ」用
+			$imgName = env("NEXT_PAGE_IMG", "");
+			$labelName = '次のページへ';
+			$data = $pageNext($postBackData);
+		} elseif ($changePage === env("CHANGE_PAGE_BACK", "")) {
+			// 「前のページ」用
+			$imgName = env("BACK_PAGE_IMG", "");
+			$labelName = '前のページへ';
+			$data = $pageBack($postBackData);
+		} else {
+			\Log::info("ページの切り替えタイプが不正です。");
+			throw new \Exception;
+		}
+
+		// カルーセルの追加
+		array_push(
+			$columns,
+			array(
+				'thumbnailImageUrl' => Storage::disk('dropbox')->url($imgName),
+				'text'    => 'おいしいを探そう♪',
+				'actions' => array(
+					array(
+						'type' => 'postback',
+						'label' => $labelName,
+						'data' => json_encode($data)
+					),
+					array(
+						'type' => 'postback',
+						'label' => 'ジャンル選択',
+						'data' => '{"latitude":"' . $postBackData['latitude'] . '","longitude":"' . $postBackData['longitude'] . '","changePage":"' .  env("CHANGE_PAGE_BACK", "") . '"}'
+					)
+				)
+			)
+		);
+
+		return $columns;
 	}
 }
