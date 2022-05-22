@@ -73,6 +73,7 @@ class LineWebhookController extends Controller
 					array_push(
 						$shopDetails,
 						array(
+							'storeId' => $hotpepperShop['id'],
 							'shopName' => mb_strimwidth($hotpepperShop['name'], 0, 60, '...', 'utf-8'),
 							'infoUrl' => $hotpepperShop['urls']['pc'],
 							'imageUrl' => $shopImage,
@@ -254,7 +255,6 @@ class LineWebhookController extends Controller
 		// 「前に戻る」カルーセル作成
 		if (!($hotpepperResults['results']['results_start'] == env("HOTPEPPER_RESULTS_START", ""))) {
 			$columns = $this->makeChangePageCarousel($columns, $postBackData, env("CHANGE_PAGE_BACK", ""));
-			\Log::info("dekitayo!");
 		}
 
 		foreach ($shopDetails as $shopDetail) {
@@ -268,12 +268,12 @@ class LineWebhookController extends Controller
 						array(
 							'type' => 'uri',
 							'label' => '詳細ページへ',
-							'uri' => $shopDetail['infoUrl']
+							'uri' => url('/detal', [$shopDetail['storeId']])
 						),
 						array(
 							'type' => 'uri',
 							'label' => 'googleMapを開く',
-							'uri' => 'https://www.google.com/maps/search/?api=1&query=' . str_replace(" ", "", $shopDetail['shopName'])
+							'uri' => 'https://www.google.com/maps/search/?api=1&query=' . str_replace([" ", "`"], "", $shopDetail['shopName']) //スペースとバッククオートが入るとエラーになるため消す
 
 						),
 					)
@@ -345,7 +345,7 @@ class LineWebhookController extends Controller
 						'type' => 'postback',
 						'label' => 'ジャンル選択',
 						'data' => '{"latitude":"' . $postBackData['latitude'] . '","longitude":"' . $postBackData['longitude'] . '","changePage":"' .  env("CHANGE_PAGE_BACK", "") . '"}'
-					)
+					),
 				)
 			)
 		);
