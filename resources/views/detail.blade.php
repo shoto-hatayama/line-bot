@@ -10,9 +10,10 @@
 </head>
 
 <body>
-  <iframe class="font-sans h-3/4 w-full bg-cover text-center flex flex-col items-center justify-center" src="https://www.hotpepper.jp/strJ000279518/food/"></iframe>
+  <!-- ホットペッパーにメニューページが存在しない場合は表示されない -->
+  <iframe class="font-sans h-3/4 w-full bg-cover text-center flex flex-col items-center justify-center" src="https://www.hotpepper.jp/str{{ $id }}/food/"></iframe>
 
-  <section class="text-gray-600 body-font overflow-hidden">
+  <section class=" text-gray-600 body-font overflow-hidden">
     <div class="container px-5 pb-24 mx-auto">
       <div class="-my-8 divide-y-2 divide-gray-100">
         @foreach($storeDetails as $storeDetail)

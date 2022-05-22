@@ -20,6 +20,6 @@ class SearchRestaurantController extends Controller
             $i++;
         }
 
-        return view('detail', compact('storeDetails'));
+        return view('detail', compact('storeDetails', 'id'));
     }
 }
