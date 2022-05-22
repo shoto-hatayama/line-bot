@@ -130,4 +130,35 @@ class CallFoodApi
             \Log::info($e);
         }
     }
+
+    /**
+     * お店IDから店舗情報を検索
+     *
+     * @param string $accessKey　アクセスキー
+     * @param string $storeId　お店ID
+     * @return $results 店舗情報
+     */
+    public static function hotpepperSearchStoreid($accessKey, $storeId)
+    {
+        try {
+            \Log::info('ホットペッパーAPIお店ID検索処理開始');
+
+            $curl = curl_init();
+            $curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key=' . $accessKey . '&id=' . $storeId . '&format=json';
+            $curlOption = array(
+                CURLOPT_URL => $curlUrl,
+                CURLOPT_RETURNTRANSFER => true,
+            );
+            curl_setopt_array($curl, $curlOption);
+            $results = json_decode(curl_exec($curl), true);
+            curl_close($curl);
+
+            \Log::info('ホットペッパーAPIお店ID検索処理終了');
+            // １店舗の詳細情報のみを表示するためcurrentを利用
+            return current($results['results']['shop']);
+        } catch (Exception $e) {
+            \Log::info('ホットペッパーAPIお店ID検索処理でエラーが発生しました。');
+            \Log::info($e);
+        }
+    }
 }
