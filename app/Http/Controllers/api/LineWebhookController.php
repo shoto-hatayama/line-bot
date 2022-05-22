@@ -317,11 +317,13 @@ class LineWebhookController extends Controller
 			$imgName = env("NEXT_PAGE_IMG", "");
 			$labelName = '次のページへ';
 			$data = $pageNext($postBackData);
+			$carouselText = env('NEXT_CAROUSEL_TEXT', "");
 		} elseif ($changePage === env("CHANGE_PAGE_BACK", "")) {
 			// 「前のページ」用
 			$imgName = env("BACK_PAGE_IMG", "");
 			$labelName = '前のページへ';
 			$data = $pageBack($postBackData);
+			$carouselText = env('BACK_CAROUSEL_TEXT', "");
 		} else {
 			\Log::info("ページの切り替えタイプが不正です。");
 			throw new \Exception;
@@ -332,7 +334,7 @@ class LineWebhookController extends Controller
 			$columns,
 			array(
 				'thumbnailImageUrl' => Storage::disk('dropbox')->url($imgName),
-				'text'    => 'おいしいを探そう♪',
+				'text'    => $carouselText,
 				'actions' => array(
 					array(
 						'type' => 'postback',
