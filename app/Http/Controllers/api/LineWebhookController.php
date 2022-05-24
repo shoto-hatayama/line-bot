@@ -146,18 +146,18 @@ class LineWebhookController extends Controller
 	private function getGenreCarouselList($latitude, $longitude, $changePage = "back")
 	{
 		// 表示するジャンル名の個数と取得位置を変数に格納
-		if ($changePage === env("CHANGE_PAGE_NEXT", "")) {
-			$arrayStartPosition = env("NEXT_START_POSITION", "");
-			$itemLimit = env("NEXT_ITEM_LIMIT");
-			$carouselLavel = env('BACK_CAROUSEL_LABEL', "");
-			$carouselText = env('BACK_CAROUSEL_TEXT', "");
-			$changePageAction = env('CHANGE_PAGE_BACK', "");
-		} elseif ($changePage === env("CHANGE_PAGE_BACK", "")) {
-			$arrayStartPosition = env("DEFAULT_START_POSITION", "");
-			$itemLimit = env("DEFAULT_ITEM_LIMIT", "");
-			$carouselLavel = env('NEXT_CAROUSEL_LABEL', "");
-			$carouselText = env('NEXT_CAROUSEL_TEXT', "");
-			$changePageAction = env('CHANGE_PAGE_NEXT', "");
+		if ($changePage === config('const.ChangePage.CHANGE_PAGE_NEXT')) {
+			$arrayStartPosition = config('const.StartPosition.NEXT_START_POSITION');
+			$itemLimit = config('const.ItemLimit.NEXT_ITEM_LIMIT');
+			$carouselLavel = config('const.CarouselLabel.BACK_CAROUSEL_LABEL');
+			$carouselText = config('const.CarouselText.BACK_CAROUSEL_TEXT');
+			$changePageAction = config('const.ChangePage.CHANGE_PAGE_BACK');
+		} elseif ($changePage === config('const.ChangePage.CHANGE_PAGE_BACK')) {
+			$arrayStartPosition = config('const.StartPosition.DEFAULT_START_POSITION');
+			$itemLimit = config('const.ItemLimit.DEFAULT_ITEM_LIMIT');
+			$carouselLavel = config('const.CarouselLabel.NEXT_CAROUSEL_LABEL');
+			$carouselText = config('const.CarouselText.NEXT_CAROUSEL_TEXT');
+			$changePageAction = config('const.ChangePage.CHANGE_PAGE_NEXT');
 		} else {
 			\Log::info("不正な値が入力されました。");
 			throw new Exception;
@@ -175,7 +175,7 @@ class LineWebhookController extends Controller
 
 		//カルーセル作成
 		$columns = [];
-		if ($changePage === env("CHANGE_PAGE_BACK", "")) {
+		if ($changePage === config('const.ChangePage.CHANGE_PAGE_BACK')) {
 			// ジャンルを指定しない検索
 			array_push(
 				$columns,
@@ -253,8 +253,8 @@ class LineWebhookController extends Controller
 		//カルーセル作成
 		$columns = [];
 		// 「前に戻る」カルーセル作成
-		if (!($hotpepperResults['results']['results_start'] == env("HOTPEPPER_RESULTS_START", ""))) {
-			$columns = $this->makeChangePageCarousel($columns, $postBackData, env("CHANGE_PAGE_BACK", ""));
+		if (!($hotpepperResults['results']['results_start'] == config('const.HOTPEPPER_RESULTS_START'))) {
+			$columns = $this->makeChangePageCarousel($columns, $postBackData, config('const.ChangePage.CHANGE_PAGE_BACK'));
 		}
 
 		foreach ($shopDetails as $shopDetail) {
@@ -284,7 +284,7 @@ class LineWebhookController extends Controller
 		$hotpepperListEnd = $postBackData['hotpepperListStart'] + $postBackData['hotpepperListCount'] - 1;
 		// 「次へ進む」カルーセル作成
 		if (!($hotpepperListEnd >= $hotpepperResults['results']['results_available'])) {
-			$columns = $this->makeChangePageCarousel($columns, $postBackData, env("CHANGE_PAGE_NEXT", ""));
+			$columns = $this->makeChangePageCarousel($columns, $postBackData, config('const.ChangePage.CHANGE_PAGE_NEXT'));
 		}
 
 		return $columns;
@@ -312,18 +312,18 @@ class LineWebhookController extends Controller
 			return $postBackData;
 		};
 
-		if ($changePage === env("CHANGE_PAGE_NEXT", "")) {
+		if ($changePage === config('const.ChangePage.CHANGE_PAGE_NEXT')) {
 			// 「次のページ」用
-			$imgName = env("NEXT_PAGE_IMG", "");
+			$imgName = config('const.PageImg.NEXT_PAGE_IMG');
 			$labelName = '次のページへ';
 			$data = $pageNext($postBackData);
-			$carouselText = env('NEXT_CAROUSEL_TEXT', "");
-		} elseif ($changePage === env("CHANGE_PAGE_BACK", "")) {
+			$carouselText = config('const.CarouselText.NEXT_CAROUSEL_TEXT');
+		} elseif ($changePage === config('const.ChangePage.CHANGE_PAGE_BACK')) {
 			// 「前のページ」用
-			$imgName = env("BACK_PAGE_IMG", "");
+			$imgName = config('const.PageImg.BACK_PAGE_IMG');
 			$labelName = '前のページへ';
 			$data = $pageBack($postBackData);
-			$carouselText = env('BACK_CAROUSEL_TEXT', "");
+			$carouselText = config('const.CarouselText.BACK_CAROUSEL_TEXT');
 		} else {
 			\Log::info("ページの切り替えタイプが不正です。");
 			throw new \Exception;
@@ -344,7 +344,7 @@ class LineWebhookController extends Controller
 					array(
 						'type' => 'postback',
 						'label' => 'ジャンル選択',
-						'data' => '{"latitude":"' . $postBackData['latitude'] . '","longitude":"' . $postBackData['longitude'] . '","changePage":"' .  env("CHANGE_PAGE_BACK", "") . '"}'
+						'data' => '{"latitude":"' . $postBackData['latitude'] . '","longitude":"' . $postBackData['longitude'] . '","changePage":"' .  config('const.ChangePage.CHANGE_PAGE_BACK') . '"}'
 					),
 				)
 			)
