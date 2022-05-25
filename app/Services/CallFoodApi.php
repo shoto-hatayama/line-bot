@@ -30,15 +30,16 @@ class CallFoodApi
     }
 
     //ぐるなび大分類名取得
-    public static function getGnaviLargeGenre($accessKey){
+    public static function getGnaviLargeGenre($accessKey)
+    {
         try {
             \Log::info('ぐるなび大分類取得処理開始');
             $curl = curl_init();
 
             $curlOption = array(
-                CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategoryLargeSearchAPI/v3//?keyid='.$accessKey,
+                CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategoryLargeSearchAPI/v3//?keyid=' . $accessKey,
                 CURLOPT_RETURNTRANSFER => true,
-                );
+            );
             curl_setopt_array($curl, $curlOption);
             $result = curl_exec($curl);
 
@@ -53,15 +54,16 @@ class CallFoodApi
     }
 
     //ぐるなび小分類名取得
-    public static function getGnaviSmallGenre($accessKey){
+    public static function getGnaviSmallGenre($accessKey)
+    {
         try {
             \Log::info('ぐるなび小分類取得処理開始');
             $curl = curl_init();
 
             $curlOption = array(
-                CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategorySmallSearchAPI/v3/?keyid='.$accessKey,
+                CURLOPT_URL => 'https://api.gnavi.co.jp/master/CategorySmallSearchAPI/v3/?keyid=' . $accessKey,
                 CURLOPT_RETURNTRANSFER => true,
-                );
+            );
             curl_setopt_array($curl, $curlOption);
             $result = curl_exec($curl);
 
@@ -76,17 +78,18 @@ class CallFoodApi
     }
 
     //ぐるなびAPIから飲食店情報を取得
-    public static function getGnaviShopData($accessKey, $genreData){
+    public static function getGnaviShopData($accessKey, $genreData)
+    {
         try {
             \Log::info('ぐるなびAPI飲食店情報取得処理開始');
             $curl = curl_init();
 
             $gnaviParam = substr($genreData['gnaviGenreCode'], -3) == '000' ? "&category_l" : "&category_s";
-            $curlUrl =  'https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid='.$accessKey.$gnaviParam.$genreData['gnaviGenreCode'].'&latitude='.$genreData['latitude'].'&longitude='.$genreData['longitude'].'&range='.$genreData['range'].'&offset='.$genreData['gnaviListStart'].'&hit_per_page='.$genreData['gnaviListCount'];
+            $curlUrl =  'https://api.gnavi.co.jp/RestSearchAPI/v3/?keyid=' . $accessKey . $gnaviParam . $genreData['gnaviGenreCode'] . '&latitude=' . $genreData['latitude'] . '&longitude=' . $genreData['longitude'] . '&range=' . $genreData['range'] . '&offset=' . $genreData['gnaviListStart'] . '&hit_per_page=' . $genreData['gnaviListCount'];
             $curlOption = array(
                 CURLOPT_URL => $curlUrl,
                 CURLOPT_RETURNTRANSFER => true,
-                );
+            );
             curl_setopt_array($curl, $curlOption);
             $results = json_decode(curl_exec($curl), true);
 
