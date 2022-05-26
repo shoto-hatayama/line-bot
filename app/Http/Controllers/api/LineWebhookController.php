@@ -268,7 +268,7 @@ class LineWebhookController extends Controller
 						array(
 							'type' => 'uri',
 							'label' => '詳細ページへ',
-							'uri' => url('/detal', [$shopDetail['storeId']])
+							'uri' => url('/detail', [$shopDetail['storeId']])
 						),
 						array(
 							'type' => 'uri',
