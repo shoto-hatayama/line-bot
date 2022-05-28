@@ -28,6 +28,9 @@
     </div>
   </section>
   <div class="text-center">
+    【画像提供：ホットペッパー グルメ】
+  </div>
+  <div class="text-center">
     Powered by <a href=" http://webservice.recruit.co.jp/">ホットペッパー Webサービス</a>
   </div>
 
