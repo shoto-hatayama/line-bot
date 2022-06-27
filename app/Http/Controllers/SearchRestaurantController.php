@@ -3,9 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 
 class SearchRestaurantController extends Controller
 {
+    /**
+     * トップ
+     *
+     * @return view
+     */
+    public function index()
+    {
+        return view('index');
+    }
+
+    /**
+     * 店舗情報詳細
+     *
+     * @param string $id 店舗ID
+     * @return views
+     */
     public function detail($id)
     {
         $foodApi = app()->make('CallFoodApi');

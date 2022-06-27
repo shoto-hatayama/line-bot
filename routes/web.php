@@ -13,4 +13,7 @@ use App\Http\Controllers\SearchRestaurantController;
 |
 */
 
+// トップ画面
+Route::get('/', [SearchRestaurantController::class, 'index']);
+// 店舗情報詳細画面
 Route::get('/detail/{id}', [SearchRestaurantController::class, 'detail']);
