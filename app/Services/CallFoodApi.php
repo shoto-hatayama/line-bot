@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Request;
+
 class CallFoodApi
 {
 
@@ -161,6 +163,38 @@ class CallFoodApi
             return current($results['results']['shop']);
         } catch (Exception $e) {
             \Log::info('ホットペッパーAPIお店ID検索処理でエラーが発生しました。');
+            \Log::info($e);
+        }
+    }
+
+    /**
+     * 近くの飲食店情報取得
+     *
+     * @param Request $request
+     * @return $results 飲食店情報
+     */
+    public static function getNearByRestaurant(Request $request)
+    {
+        try {
+            \Log::info('ホットペッパーAPIお店検索処理開始');
+
+            $current = $request->get('params');
+
+            $curl = curl_init();
+            $curlUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/?key=' . env('HOTPEPPER_ACCESS_KEY') . '&lat=' . $current['latitude'] . '&lng=' . $current['longitude'] . '&format=json';
+            $curlOption = array(
+                CURLOPT_URL => $curlUrl,
+                CURLOPT_RETURNTRANSFER => true,
+            );
+            curl_setopt_array($curl, $curlOption);
+            $results = json_decode(curl_exec($curl), true);
+            curl_close($curl);
+
+            \Log::info('ホットペッパーAPIお店検索処理終了');
+
+            return $results['results']['shop'];
+        } catch (Exception $e) {
+            \Log::info('ホットペッパーAPIお店検索処理でエラーが発生しました。');
             \Log::info($e);
         }
     }
