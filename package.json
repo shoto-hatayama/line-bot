@@ -7,7 +7,8 @@
         "watch-poll": "mix watch -- --watch-options-poll=1000",
         "hot": "mix watch --hot",
         "prod": "npm run production",
-        "production": "mix --production"
+        "production": "mix --production",
+        "start": "node server.js"
     },
     "devDependencies": {
         "@vue/compiler-sfc": "^3.2.37",
@@ -25,6 +26,7 @@
         "vue-template-compiler": "^2.6.14"
     },
     "dependencies": {
+        "express": "^4.18.1",
         "vue": "^3.2.37"
     }
 }
